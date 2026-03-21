@@ -43,46 +43,6 @@ npm install
 npm run dev
 ```
 
----
-
-## Project Structure
-
-```
-adaptive-onboarding/
-├── backend/
-│   ├── main.py                        # FastAPI app — all endpoints
-│   ├── requirements.txt
-│   └── app/
-│       ├── models/
-│       │   └── schemas.py             # Pydantic models for all I/O types
-│       └── services/
-│           ├── skill_extractor.py     # spaCy NER + JD signal detection
-│           ├── gap_analyzer.py        # Sentence-BERT semantic gap scoring
-│           ├── path_planner.py        # Prerequisite DAG + Kahn's topo sort
-│           ├── ner_inference.py       # DistilBERT NER inference (optional)
-│           ├── llm_client.py          # Ollama wrapper (legacy fallback)
-│           └── reasoning_trace.py    # Decision logging utility
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx                    # Full React SPA
-│   │   └── main.jsx
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
-├── data/
-│   ├── course_catalog.json            # Source-of-truth course list
-│   └── onet_skills.json              # O*NET skill taxonomy + aliases
-├── tests/
-│   └── test_services.py              # Pytest suite (25 tests)
-├── train_skill_ner.py                 # DistilBERT NER training script
-├── distilbert_skill_ner_training.ipynb # Kaggle training notebook
-├── Dockerfile
-├── docker-compose.yml
-└── README.md
-```
-
----
-
 ## How It Works
 
 ### Stage 1 — Skill Extraction
