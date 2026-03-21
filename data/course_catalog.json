@@ -1,0 +1,122 @@
+[
+  {
+    "id": "py-fundamentals",
+    "title": "Python Programming Fundamentals",
+    "description": "Core Python syntax, data structures, OOP, and scripting for beginners.",
+    "skills_taught": ["Python", "Object-Oriented Programming", "Data Structures"],
+    "prerequisites": [],
+    "duration_hours": 20,
+    "difficulty": "beginner",
+    "provider": "Internal LMS",
+    "url": null,
+    "tags": ["programming", "backend"]
+  },
+  {
+    "id": "ml-foundations",
+    "title": "Machine Learning Foundations",
+    "description": "Supervised and unsupervised learning, model evaluation, scikit-learn.",
+    "skills_taught": ["Machine Learning", "scikit-learn", "Model Evaluation", "Statistics"],
+    "prerequisites": ["py-fundamentals"],
+    "duration_hours": 30,
+    "difficulty": "intermediate",
+    "provider": "Internal LMS",
+    "url": null,
+    "tags": ["ml", "data-science"]
+  },
+  {
+    "id": "deep-learning-intro",
+    "title": "Introduction to Deep Learning",
+    "description": "Neural networks, backpropagation, PyTorch basics, CNNs and RNNs.",
+    "skills_taught": ["Deep Learning", "PyTorch", "Neural Networks", "Computer Vision"],
+    "prerequisites": ["ml-foundations"],
+    "duration_hours": 40,
+    "difficulty": "advanced",
+    "provider": "Internal LMS",
+    "url": null,
+    "tags": ["ml", "deep-learning"]
+  },
+  {
+    "id": "sql-basics",
+    "title": "SQL and Relational Databases",
+    "description": "Queries, joins, indexing, and database design fundamentals.",
+    "skills_taught": ["SQL", "Database Design", "PostgreSQL"],
+    "prerequisites": [],
+    "duration_hours": 15,
+    "difficulty": "beginner",
+    "provider": "Internal LMS",
+    "url": null,
+    "tags": ["data", "backend"]
+  },
+  {
+    "id": "data-engineering",
+    "title": "Data Engineering with Python",
+    "description": "ETL pipelines, Apache Spark basics, data warehousing, and Airflow.",
+    "skills_taught": ["Data Engineering", "Apache Spark", "ETL Pipelines", "Apache Airflow"],
+    "prerequisites": ["py-fundamentals", "sql-basics"],
+    "duration_hours": 35,
+    "difficulty": "intermediate",
+    "provider": "Internal LMS",
+    "url": null,
+    "tags": ["data", "backend"]
+  },
+  {
+    "id": "mlops",
+    "title": "MLOps and Model Deployment",
+    "description": "CI/CD for ML, Docker, Kubernetes, model serving with FastAPI and Triton.",
+    "skills_taught": ["MLOps", "Docker", "Kubernetes", "Model Deployment", "FastAPI"],
+    "prerequisites": ["ml-foundations"],
+    "duration_hours": 25,
+    "difficulty": "advanced",
+    "provider": "Internal LMS",
+    "url": null,
+    "tags": ["ml", "devops"]
+  },
+  {
+    "id": "communication-skills",
+    "title": "Effective Communication for Technical Roles",
+    "description": "Written and verbal communication, stakeholder management, presentation skills.",
+    "skills_taught": ["Communication", "Presentation Skills", "Stakeholder Management"],
+    "prerequisites": [],
+    "duration_hours": 8,
+    "difficulty": "beginner",
+    "provider": "Internal LMS",
+    "url": null,
+    "tags": ["soft-skills"]
+  },
+  {
+    "id": "project-management",
+    "title": "Project Management Essentials",
+    "description": "Agile, Scrum, Kanban, planning, risk management, and team coordination.",
+    "skills_taught": ["Project Management", "Agile", "Scrum", "Risk Management"],
+    "prerequisites": [],
+    "duration_hours": 12,
+    "difficulty": "beginner",
+    "provider": "Internal LMS",
+    "url": null,
+    "tags": ["soft-skills", "methodology"]
+  },
+  {
+    "id": "cloud-aws",
+    "title": "AWS Cloud Practitioner",
+    "description": "Core AWS services: EC2, S3, Lambda, IAM, RDS, and cloud architecture basics.",
+    "skills_taught": ["AWS", "Cloud Computing", "Infrastructure as Code", "IAM"],
+    "prerequisites": [],
+    "duration_hours": 20,
+    "difficulty": "beginner",
+    "provider": "Internal LMS",
+    "url": null,
+    "tags": ["cloud", "devops"]
+  },
+  {
+    "id": "llm-engineering",
+    "title": "LLM Engineering and Prompt Design",
+    "description": "Working with large language models, RAG pipelines, prompt engineering, and fine-tuning.",
+    "skills_taught": ["LLM", "Prompt Engineering", "RAG", "LangChain", "Fine-tuning"],
+    "prerequisites": ["deep-learning-intro"],
+    "duration_hours": 20,
+    "difficulty": "advanced",
+    "provider": "Internal LMS",
+    "url": null,
+    "tags": ["ml", "ai"]
+  }
+]

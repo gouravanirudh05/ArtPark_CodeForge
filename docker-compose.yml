@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Pull the model on first run:
+    # docker exec adaptive-onboarding-ollama-1 ollama pull llama3
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - LLM_MODEL=llama3.2:1b
+    depends_on:
+      - ollama
+
+  frontend:
+    image: node:20-slim
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev -- --host"
+
+volumes:
+  ollama_data:
