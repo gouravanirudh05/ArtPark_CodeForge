@@ -20,7 +20,7 @@ from app.models.schemas import (
 )
 from app.services.reasoning_trace import ReasoningTrace
 
-CATALOG_PATH = Path(__file__).parent.parent.parent.parent / "data" / "course_catalog.json"
+CATALOG_PATH = Path("/app/data/course_catalog.json")
 
 
 def _load_catalog() -> List[Course]:

@@ -25,7 +25,7 @@ try:
 except OSError:
     nlp = None  # graceful fallback — LLM-only mode
 
-ONET_PATH = Path(__file__).parent.parent.parent.parent / "data" / "onet_skills.json"
+ONET_PATH = Path("/app/data/onet_skills.json")
 
 def _load_onet_taxonomy() -> dict:
     if ONET_PATH.exists():
