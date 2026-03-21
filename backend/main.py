@@ -128,6 +128,8 @@ async def analyze(
             )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not parse resume PDF: {e}")
+    
+    print(resume_text)
 
     # Stage 1: Extract
     candidate_skills, cand_trace = await extract_skills(resume_text, "resume")
