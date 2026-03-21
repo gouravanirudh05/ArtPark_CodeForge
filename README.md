@@ -17,7 +17,7 @@ Upload a resume + job description → get a personalized, prerequisite-aware tra
 
 ```bash
 git clone https://github.com/SathishAdithiyaaSV/ArtPark_CodeForge
-cd adaptive-onboarding
+cd ArtPark_CodeForge
 
 docker compose up --build
 ```
