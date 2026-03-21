@@ -1,42 +1,38 @@
 # Adaptive Onboarding Engine
 
-An AI-driven, adaptive learning engine that parses a new hire's capabilities from their resume and a job description, then dynamically generates a personalized training pathway to close identified skill gaps.
+> AI-driven personalized learning pathway generator for corporate onboarding.
+
+Upload a resume + job description → get a personalized, prerequisite-aware training pathway that skips what the candidate already knows and targets exactly what they need.
 
 ---
 
 ## Quick Start
 
 ### Prerequisites
-- Docker + Docker Compose **or** Python 3.11+ and Node 20+
-- [Ollama](https://ollama.ai) running locally with `llama3` pulled
 
-### With Docker Compose (recommended)
+- Docker + Docker Compose
+- Internet connection (spaCy NER model downloads from HuggingFace on first request, ~100MB)
+
+### Run with Docker
 
 ```bash
-git clone <your-repo>
+git clone <https://github.com/SathishAdithiyaaSV/ArtPark_CodeForge>
 cd adaptive-onboarding
 
 docker compose up --build
-
-# In a separate terminal, pull the LLM model:
-docker exec adaptive-onboarding-ollama-1 ollama pull llama3
 ```
 
-- Backend: http://localhost:8000
 - Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
 - API docs: http://localhost:8000/docs
 
-### Without Docker
+### Run without Docker
 
 **Backend**
 ```bash
 cd backend
 pip install -r requirements.txt
 python -m spacy download en_core_web_sm
-
-# Start Ollama separately and pull llama3:
-ollama pull llama3
-
 uvicorn main:app --reload --port 8000
 ```
 
@@ -49,65 +45,118 @@ npm run dev
 
 ---
 
-## Architecture
+## Project Structure
 
 ```
-frontend/          React SPA — upload, roadmap, gap chart, trace panel
-backend/
-  main.py          FastAPI app — CORS, /extract, /gap, /pathway, /analyze
-  app/
-    models/
-      schemas.py   Pydantic models for all request/response types
-    services/
-      llm_client.py       Ollama API wrapper (Llama 3 / Mistral)
-      skill_extractor.py  spaCy NER + LLM structured JSON extraction
-      gap_analyzer.py     Sentence-BERT embeddings + cosine similarity gap scoring
-      path_planner.py     Prerequisite DAG + Kahn's topological sort
-      reasoning_trace.py  Step-by-step decision logger
-    routers/       (endpoint logic lives in main.py for simplicity)
-data/
-  course_catalog.json   Source-of-truth course list (no hallucinated courses)
-  onet_skills.json      O*NET skill taxonomy for normalisation
+adaptive-onboarding/
+├── backend/
+│   ├── main.py                        # FastAPI app — all endpoints
+│   ├── requirements.txt
+│   └── app/
+│       ├── models/
+│       │   └── schemas.py             # Pydantic models for all I/O types
+│       └── services/
+│           ├── skill_extractor.py     # spaCy NER + JD signal detection
+│           ├── gap_analyzer.py        # Sentence-BERT semantic gap scoring
+│           ├── path_planner.py        # Prerequisite DAG + Kahn's topo sort
+│           ├── ner_inference.py       # DistilBERT NER inference (optional)
+│           ├── llm_client.py          # Ollama wrapper (legacy fallback)
+│           └── reasoning_trace.py    # Decision logging utility
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx                    # Full React SPA
+│   │   └── main.jsx
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+├── data/
+│   ├── course_catalog.json            # Source-of-truth course list
+│   └── onet_skills.json              # O*NET skill taxonomy + aliases
+├── tests/
+│   └── test_services.py              # Pytest suite (25 tests)
+├── train_skill_ner.py                 # DistilBERT NER training script
+├── distilbert_skill_ner_training.ipynb # Kaggle training notebook
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
 ```
 
 ---
 
-## Skill-Gap Analysis Logic
+## How It Works
 
-### 1. Skill Extraction (`skill_extractor.py`)
-- **spaCy pass**: `en_core_web_sm` extracts noun phrases as hints to reduce LLM hallucination
-- **LLM pass**: Llama 3 receives the text + spaCy hints and returns a structured JSON array of skills with name, category, proficiency level, and confidence score
-- **Normalisation**: Skills are mapped to canonical names using the O*NET taxonomy alias table
+### Stage 1 — Skill Extraction
 
-### 2. Gap Analysis (`gap_analyzer.py`)
-- Skills are embedded using **Sentence-BERT** (`all-MiniLM-L6-v2`)
-- Each required skill is matched to the most semantically similar candidate skill using **cosine similarity**
-- Similarity below 0.72 → skill is treated as **missing** (gap score ≈ 1 - similarity)
-- Similarity above threshold → **proficiency gap** scored from level distance (beginner→expert = 3 levels)
-- Final gap score blends similarity distance and proficiency delta
-- **Redundant skills** (candidate skills not matched to any requirement) are surfaced for training skip decisions
+Two documents are processed independently:
 
-### 3. Adaptive Path Planning (`path_planner.py`)
-- Loads `course_catalog.json` as the only permissible course source (grounds the system)
-- Filters to courses that teach at least one identified gap skill
-- Skips courses whose entire skill set the candidate already demonstrates
-- Builds a **prerequisite DAG** over remaining courses
-- Applies **Kahn's topological sort** to ensure prerequisites are always completed before dependents
-- Each step includes a human-readable rationale logged to the reasoning trace
+**Resume** — The `amjad-awad/skill-extractor` spaCy NER model identifies skill entity spans. Proficiency level is inferred from surrounding context words (`"senior"` → advanced, `"learning"` → beginner).
+
+**Job Description** — Same NER model, but with additional sentence-level signal detection. Sentences containing `"required"`, `"must have"`, `"essential"` mark skills as required (confidence 0.95). Sentences with `"preferred"`, `"nice to have"` mark skills as preferred (confidence 0.78).
+
+If the NER model is unavailable, the system falls back to a keyword matcher covering 60+ common technical and soft skills.
+
+### Stage 2 — Gap Analysis
+
+All skills are embedded with **Sentence-BERT** (`all-MiniLM-L6-v2`) into 384-dimensional vectors.
+
+For each required skill, the analyzer finds the most semantically similar candidate skill via cosine similarity:
+- Similarity < 0.72 → skill is **missing** (gap score ≈ 1.0)
+- Similarity ≥ 0.72 → **partial gap** scored by proficiency distance
+
+**Gap score formula:**
+```
+gap_score = (1 - similarity) × proficiency_delta_weight
+```
+
+Skills are prioritised as high / medium / low based on gap score thresholds.
+
+### Stage 3 — Pathway Generation
+
+The path planner:
+1. Loads `course_catalog.json` as the only permitted course source (no hallucinated courses)
+2. Semantically matches course skills to gap skills (threshold: 0.60)
+3. Skips courses where all taught skills are already semantically covered by the candidate (threshold: 0.75)
+4. Builds a prerequisite **DAG** over remaining courses
+5. Applies **Kahn's topological sort** — guarantees prerequisites always come before dependents
+6. Attaches a rationale string to each step for the reasoning trace
 
 ---
 
 ## API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/analyze` | Full pipeline (resume PDF + JD form data) |
-| POST | `/extract` | Skill extraction only |
-| POST | `/gap` | Gap analysis only |
-| POST | `/pathway` | Pathway generation only |
-| GET | `/health` | Health check |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/analyze` | Full pipeline — resume PDF + JD → extract + gap + pathway |
+| `POST` | `/extract` | Skill extraction only (resume PDF + JD text) |
+| `POST` | `/gap` | Gap analysis only (JSON skill lists) |
+| `POST` | `/pathway` | Pathway generation only (JSON gaps + candidate skills) |
+| `GET`  | `/health` | Health check |
 
-Interactive docs at `/docs` (Swagger UI).
+### `/analyze` — Full pipeline (used by the UI)
+
+```bash
+curl -X POST http://localhost:8000/analyze \
+  -F "resume=@your_resume.pdf" \
+  -F "job_description=We are looking for a Python ML Engineer..." \
+  -F "role_title=ML Engineer"
+```
+
+### `/gap` — Gap analysis (Postman testing)
+
+```json
+POST /gap
+{
+  "candidate_skills": [
+    {"name": "Python", "category": "programming_language", "proficiency": "intermediate", "confidence_score": 0.9},
+    {"name": "SQL", "category": "programming_language", "proficiency": "beginner", "confidence_score": 0.8}
+  ],
+  "required_skills": [
+    {"name": "Python", "category": "programming_language", "proficiency": "advanced", "confidence_score": 1.0},
+    {"name": "PyTorch", "category": "framework", "proficiency": "intermediate", "confidence_score": 1.0},
+    {"name": "MLOps", "category": "ml_ai", "proficiency": "intermediate", "confidence_score": 1.0}
+  ]
+}
+```
 
 ---
 
@@ -115,22 +164,35 @@ Interactive docs at `/docs` (Swagger UI).
 
 | Layer | Technology |
 |-------|-----------|
-| LLM | Llama 3 (via Ollama) or Mistral |
+| Skill extraction | spaCy NER — `amjad-awad/skill-extractor` (HuggingFace) |
 | Embeddings | Sentence-BERT `all-MiniLM-L6-v2` |
-| NER pre-pass | spaCy `en_core_web_sm` |
-| Graph algorithm | Kahn's topological sort (stdlib) |
+| Graph algorithm | Kahn's topological sort |
 | Backend | FastAPI + Uvicorn |
-| Frontend | React 18 + Vite |
 | PDF parsing | pdfplumber |
-| Skill taxonomy | O*NET database |
+| Schema validation | Pydantic v2 |
+| Frontend | React 18 + Vite |
+| Skill taxonomy | O*NET 28.0 |
+| Containerisation | Docker + Docker Compose |
 
 ---
 
-## Datasets
+## Running Tests
 
-- **O*NET 28.0** — skill taxonomy and occupational data (public domain, onetcenter.org)
-- **Kaggle Resume Dataset** — used for prompt engineering and testing (CC0)
-- **Internal `course_catalog.json`** — custom catalog ensuring zero hallucinated course recommendations
+```bash
+cd adaptive-onboarding
+pip install -r backend/requirements.txt pytest-asyncio
+pytest tests/ -v
+```
+
+The test suite covers:
+- `ReasoningTrace` logging
+- Proficiency gap math
+- Cosine similarity edge cases
+- Gap analyzer with mocked Sentence-BERT
+- Topological sort correctness
+- Course relevance matching
+- Pathway skipping logic
+- Pydantic schema validation
 
 ---
 
@@ -138,19 +200,10 @@ Interactive docs at `/docs` (Swagger UI).
 
 | Criterion | Implementation |
 |-----------|---------------|
-| Technical sophistication (20%) | spaCy NER + Sentence-BERT embeddings + DAG topological sort |
-| Grounding & reliability (15%) | Pathway strictly limited to `course_catalog.json` — no invented courses |
-| Reasoning trace (10%) | `ReasoningTrace` class logs every decision step; surfaced in UI |
-| Product impact (10%) | Redundant hours saved metric displayed on results dashboard |
-| User experience (15%) | React SPA with timeline roadmap, gap bars, skill comparison, trace panel |
-| Cross-domain scalability (10%) | Semantic embedding matching works across technical and non-technical roles |
-| Documentation (20%) | This README + inline docstrings + 5-slide deck |
-
----
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `LLM_MODEL` | `llama3` | Model name (also accepts `mistral`) |
+| Technical sophistication (20%) | spaCy NER + Sentence-BERT + DAG topological sort |
+| Grounding & reliability (15%) | Pathway strictly limited to `course_catalog.json` |
+| Reasoning trace (10%) | `ReasoningTrace` logs every decision; surfaced in UI |
+| Product impact (10%) | Hours-saved metric on dashboard; skipped courses listed |
+| User experience (15%) | React SPA — timeline roadmap, gap bars, skill comparison, trace panel |
+| Cross-domain scalability (10%) | NER generalises across technical, HR, finance, and operational roles |
+| Documentation (20%) | This README + docstrings + technical doc + 5-slide deck |
